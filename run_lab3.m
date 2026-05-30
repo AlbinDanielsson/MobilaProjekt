@@ -1,0 +1,108 @@
+clear; 
+clc; 
+close all;
+% algorithm names
+algos = {'Dijkstra', 'Astar'};
+
+fprintf('%s | %s | %s | %s | %s | %s\n', 'MAP', 'CASE', 'ALGO', 'PUSHES', 'POPS', 'TIME(s)');
+
+% Loop over each maze
+for map_number = 1:2
+    
+    % Load the map data
+    if map_number == 1
+        load('IntelMaze.mat'); 
+        map = IntelMaze.map; s_pos = IntelMaze.start; g_pos = IntelMaze.goal; name = 'Intel Lab';
+    else
+        load('FreiburgMaze.mat'); 
+        map = FreiburgMaze.map; s_pos = FreiburgMaze.start; g_pos = FreiburgMaze.goal; name = 'Freiburg Campus';
+    end
+    
+    % known environment and unknown environment
+    for case_type = 1:1
+        if case_type == 1, case_lbl = 'Known'; else, case_lbl = 'Unknown'; end
+        
+        % run all algorithms
+        for a = 1:length(algos)
+            algo = algos{a};
+            
+            if strcmp(algo, 'DStarLite')
+                [path, psh, pp, t] = dstar_lite_planner(map, s_pos, g_pos, (case_type == 1));
+            else
+                if case_type == 1
+                    % Planner for A* or dijkstra for known
+                    [path, psh, pp, t] = planner(map, s_pos, g_pos, algo);
+                else
+                    % Unknown planner A* or dijkstra
+                    [path, psh, pp, t] = run_unknown_standard(map, s_pos, g_pos, algo);
+                end
+            end
+            
+            % Output
+            fprintf('%s | %s | %s | %d | %d | %f\n', name, case_lbl, algo, psh, pp, t);
+            
+            
+            % Plotting
+            figure('Name', sprintf('%s - %s - %s', name, case_lbl, algo));
+            
+            % Skapar en bild där hinder (inf) blir helt vita (1) och fri yta blir svart (0)
+            % Detta ritar hela kartan i ett enda svep på en mikrosekund!
+            imagesc(map == inf); 
+            colormap(gray); 
+            hold on;
+            
+            % Rita den beräknade rutten i grönt
+            if ~isempty(path)
+                plot(path(:,1), path(:,2), 'g-', 'LineWidth', 2.5); 
+            end
+            
+            % Rita Start (Blå kvadrat) och Mål (Gul kvadrat)
+            plot(s_pos(1), s_pos(2), 'sb', 'MarkerFaceColor', 'b', 'MarkerSize', 10, 'color', 'b');
+            plot(g_pos(1), g_pos(2), 'sy', 'MarkerFaceColor', 'y', 'MarkerSize', 10, 'color', 'y');
+            
+            title(sprintf('%s [%s Case] - %s', name, case_lbl, algo));
+            axis equal; 
+            axis([1 size(map,2) 1 size(map,1)]);
+            set(gca, 'YDir', 'normal'); % Håller koordinatsystemet rättvänt
+            hold off;
+            
+        end
+    end
+    fprintf('------------------------------------------------------------------------\n');
+end
+
+% Helper function to run Dijkstra/A* in an unknown map
+function [traj, t_push, t_pop, total_t] = run_unknown_standard(act_map, s_pos, g_pos, type)
+    tic; t_push = 0; t_pop = 0;
+    k_map = zeros(size(act_map,1), size(act_map,2)); % Start with empty map
+    curr = s_pos; traj = curr;
+    
+    [c_path, psh, pp, ~] = planner(k_map, curr, g_pos, type);
+    t_push = t_push + psh; t_pop = t_pop + pp;
+    
+    while ~isempty(c_path) && ~isequal(curr, g_pos)
+        replanned = false;
+        % Check 8 neighbor cells for walls
+        for dx = -1:1
+            for dy = -1:1
+                nx = curr(1)+dx; ny = curr(2)+dy;
+                if nx>=1 && nx<=size(act_map,1) && ny>=1 && ny<=size(act_map,2)
+                    if act_map(nx,ny) == inf && k_map(nx,ny) ~= inf
+                        k_map(nx,ny) = inf; replanned = true; % Discovered new obstacle
+                    end
+                end
+            end
+        end
+        % Replan path from current spot if a wall was detected
+        if replanned
+            [c_path, psh, pp, ~] = planner(k_map, curr, g_pos, type);
+            t_push = t_push + psh; t_pop = t_pop + pp;
+            if isempty(c_path), break; end
+        end
+        % Take a step forward along the path
+        if size(c_path, 1) > 1
+            curr = c_path(2, :); traj = [traj; curr]; c_path(1, :) = [];
+        else, break; end
+    end
+    total_t = toc;
+end
