@@ -1,10 +1,14 @@
 clc; clear;
 
-load FreiburgMaze.mat
-Maze = FreiburgMaze;
+%load FreiburgMaze.mat
+%Maze = FreiburgMaze;
+%Maze.goal = [197; 115];
+%Maze.start = [354; 242];
 
-Maze.goal = [197; 115];
-Maze.start = [354; 242];
+load IntelMaze.mat
+Maze = IntelMaze;
+Maze.goal = [274; 410];
+Maze.start = [550; 581];
 
 path = zeros(2, 0);
 showMap(Maze, path);
@@ -28,7 +32,7 @@ function [path, nodes] = planPathRRTStar(Maze)
     end
 
     maxIterations = 20000;
-    stepSize = 3500;
+    stepSize = 350;
     goalRadius = 45;
     rewireRadius = 80;
     goalBias = 0.10;
