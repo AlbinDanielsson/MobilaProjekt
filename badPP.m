@@ -3,7 +3,7 @@ clc; clear;
 load IntelMaze.mat
 Maze = IntelMaze;
 
-Maze.goal = [250, 180];
+Maze.goal = [80; 180];
 
 aStar = 1; % 1 = A*, 0 = Dijkstra
 
