@@ -1,9 +1,10 @@
 clc; clear;
 
-load IntelMaze.mat
-Maze = IntelMaze;
+load FreiburgMaze.mat
+Maze = FreiburgMaze;
 
-Maze.goal = [80; 180];
+Maze.goal = [1970; 1200];
+Maze.start = [3580; 2460];
 
 aStar = 1; % 1 = A*, 0 = Dijkstra
 
