@@ -112,7 +112,7 @@ fprintf('\nBåda kartorna har genererats och exporterats!\n');
 
 function make_planning_maze(map_log_odds, start_cell, goal_cell, out_file, var_name)
     % Parametrar att justera
-    max_grid_size = 300;      % inte 80x80; max ungefär 300x300
+    max_grid_size = 1000;      % inte 80x80; max ungefär 300x300
     occ_threshold = 0.65;     % celler över detta blir hinder
     crop_padding = 30;        % marginal runt utforskat område
     inflate_cells = 1;        % gör hinder lite tjockare
