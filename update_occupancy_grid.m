@@ -14,7 +14,7 @@ function map = update_occupancy_grid(map, rx, ry, rtheta, ranges, res, off_x, of
         % Intel Lab (180 grader framåt)
         angles = linspace(-pi/2, pi/2, num_angles);
     else
-        % Freiburg Campus (360 grader - Notera flippen från pi till -pi!)
+        %Both are 180
         angles = linspace(-pi/2, pi/2, num_angles); 
     end
     
