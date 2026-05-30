@@ -111,19 +111,30 @@ fprintf('\nBåda kartorna har genererats och exporterats!\n');
 
 
 function make_planning_maze(map_log_odds, start_cell, goal_cell, out_file, var_name)
-    % Parametrar att justera
-    max_grid_size = 1000;      % inte 80x80; max ungefär 300x300
-    occ_threshold = 0.65;     % celler över detta blir hinder
-    crop_padding = 30;        % marginal runt utforskat område
-    inflate_cells = 1;        % gör hinder lite tjockare
+    % Skapar en path-planning-kompatibel Maze:
+    %   Maze.map   : 0 = fri yta, inf = hinder eller okänt
+    %   Maze.start : [row; col]
+    %   Maze.goal  : [row; col]
 
-    prob = 1 - 1 ./ (1 + exp(map_log_odds));
+    max_grid_size = 1000;      % max storlek på planeringskartan
+    free_threshold = 0.35;    % sannolikhet under detta räknas som fri yta
+    crop_padding = 30;        % marginal runt relevant område
+    inflate_cells = 1;        % gör hinder tjockare, sätt 0 för ingen inflation
+    min_free_ratio = 0.50;    % vid nerskalning: blocket måste vara minst 50% fritt
 
+    % Konvertera log-odds till sannolikhet för upptaget.
+    % map_log_odds < 0 => troligen fri yta
+    % map_log_odds = 0 => okänt
+    % map_log_odds > 0 => troligen hinder
+    prob_occ = 1 ./ (1 + exp(-map_log_odds));
+
+    free = prob_occ < free_threshold;
+    occupied_or_unknown = ~free;
+
+    % Croppa till området där något är känt, plus start/mål.
+    % Vi vill inte låta enorma okända ytterområden dominera kartan.
     known = abs(map_log_odds) > 0.01;
-    occupied = prob > occ_threshold;
-
-    % Croppa bort tomma delar av den stora kartan
-    relevant = known | occupied;
+    relevant = known;
 
     if ~isempty(start_cell)
         relevant(start_cell(1), start_cell(2)) = true;
@@ -135,24 +146,30 @@ function make_planning_maze(map_log_odds, start_cell, goal_cell, out_file, var_n
 
     [rows, cols] = find(relevant);
 
+    if isempty(rows)
+        error('Kunde inte skapa Maze: kartan verkar helt okänd.');
+    end
+
     r1 = max(min(rows) - crop_padding, 1);
     r2 = min(max(rows) + crop_padding, size(map_log_odds, 1));
     c1 = max(min(cols) - crop_padding, 1);
     c2 = min(max(cols) + crop_padding, size(map_log_odds, 2));
 
-    occupied_crop = occupied(r1:r2, c1:c2);
+    free_crop = free(r1:r2, c1:c2);
 
     start_crop = start_cell - [r1; c1] + 1;
     goal_crop = goal_cell - [r1; c1] + 1;
 
-    % Skala ner till rimlig storlek för A*/Dijkstra
-    [h, w] = size(occupied_crop);
+    % Skala ner till rimlig storlek för A*.
+    [h, w] = size(free_crop);
     scale = max(1, ceil(max(h, w) / max_grid_size));
 
     new_h = ceil(h / scale);
     new_w = ceil(w / scale);
 
-    planning_map = zeros(new_h, new_w);
+    % Starta konservativt: allt är hinder.
+    % Endast tydligt fri yta blir körbar.
+    planning_map = inf(new_h, new_w);
 
     for rr = 1:new_h
         for cc = 1:new_w
@@ -162,10 +179,11 @@ function make_planning_maze(map_log_odds, start_cell, goal_cell, out_file, var_n
             c_start = (cc - 1) * scale + 1;
             c_end = min(cc * scale, w);
 
-            block = occupied_crop(r_start:r_end, c_start:c_end);
+            block = free_crop(r_start:r_end, c_start:c_end);
+            free_ratio = nnz(block) / numel(block);
 
-            if any(block(:))
-                planning_map(rr, cc) = inf;
+            if free_ratio >= min_free_ratio
+                planning_map(rr, cc) = 0;
             end
         end
     end
@@ -180,7 +198,7 @@ function make_planning_maze(map_log_odds, start_cell, goal_cell, out_file, var_n
 
     planning_map = inflate_obstacles(planning_map, inflate_cells);
 
-    % Säkerställ att start och mål inte råkar hamna i hinder efter skalning
+    % Start och mål måste vara körbara.
     planning_map(start(1), start(2)) = 0;
     planning_map(goal(1), goal(2)) = 0;
 

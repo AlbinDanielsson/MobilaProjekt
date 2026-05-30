@@ -1,152 +1,113 @@
-clear all
-clc
+clc; clear;
 
 load IntelMaze.mat
 Maze = IntelMaze;
 
-% Alternativt:
-% load FreiburgMaze.mat
-% Maze = FreiburgMaze;
-
-start = Maze.start;
-
-seenObstacles = zeros(size(Maze.map));
-seenObstacles = Maze.map; % kommentera bort för okänd karta
+Maze.goal = [250, 180];
 
 aStar = 1; % 1 = A*, 0 = Dijkstra
 
-traversedPath = zeros(2, 0);
-arrived = false;
-pushes = 0;
-pops = 0;
-
-showMap(IntelMaze, traversedPath);
-
-while arrived == false
-%init
-openQueue = zeros(5,0); %x, y, cost, parent x, parent y
-startH = aStar * heuristic(start, IntelMaze.goal);
-closedQueue = [start(1); start(2); startH; 0; 0;];
 path = zeros(2, 0);
+showMap(Maze, path);
+[path, pushes, pops] = planPath(Maze, aStar);
 
-foundGoal = false;
+fprintf('pushes %d, pops %d\n', pushes, pops);
+showMap(Maze, path);
 
-%A*
-target = closedQueue(:, end);
-while(foundGoal == false)
+function [path, pushes, pops] = planPath(Maze, aStar)
+    start = Maze.start;
+    goal = Maze.goal;
 
-    %Look at the adjacent nodes to most recent node in closedQueue
-    for relRow = -1:1:1
-        for relCol = -1:1:1
+    openQueue = zeros(5, 0); % row, col, cost, parent row, parent col
+    closedQueue = [start(1); start(2); aStar * heuristic(start, goal); 0; 0];
 
-            %Skip the targer itself
-            if relCol == 0 && relRow == 0
-                continue
-            end
+    pushes = 0;
+    pops = 0;
+    foundGoal = false;
 
-            lookAt = [target(1) + relRow; target(2) + relCol];
+    target = closedQueue(:, end);
 
-            if lookAt(1) < 1 || lookAt(2) < 1 || ...
-                lookAt(1) > size(Maze.map, 1) || lookAt(2) > size(Maze.map, 2)
-                continue
-            end
+    while ~foundGoal
+        for relRow = -1:1
+            for relCol = -1:1
 
-            %See if the node is already visited and also not an obstacle
-            if ~any(all(closedQueue(1:2, :) == lookAt, 1)) &&...
-                    seenObstacles(lookAt(1), lookAt(2)) == 0
-
-                isInOpen = false;
-                if  any(all(openQueue(1:2, :) == lookAt, 1))
-                    isInOpen = true;
+                if relCol == 0 && relRow == 0
+                    continue
                 end
 
-                %calculate cost
-                cost = target(3) - aStar * heuristic(target(1:2), IntelMaze.goal);
-                %cost = cost + sqrt(relRow^2 + relCol^2);
-                cost = cost + abs(relCol) + abs(relRow);
-                cost = cost + aStar * heuristic(lookAt(1:2), IntelMaze.goal);
+                lookAt = [target(1) + relRow; target(2) + relCol];
 
-                if isInOpen == false
-                    %add node to openQueue
+                if lookAt(1) < 1 || lookAt(2) < 1 || ...
+                   lookAt(1) > size(Maze.map, 1) || ...
+                   lookAt(2) > size(Maze.map, 2)
+                    continue
+                end
+
+                if isinf(Maze.map(lookAt(1), lookAt(2)))
+                    continue
+                end
+
+                if any(all(closedQueue(1:2, :) == lookAt, 1))
+                    continue
+                end
+
+                isInOpen = any(all(openQueue(1:2, :) == lookAt, 1));
+
+                old_g = target(3) - aStar * heuristic(target(1:2), goal);
+                step_cost = abs(relRow) + abs(relCol);
+                new_g = old_g + step_cost;
+                new_f = new_g + aStar * heuristic(lookAt, goal);
+
+                if ~isInOpen
                     pushes = pushes + 1;
-                    newNode = [lookAt; cost; target(1:2)];
-                    ind = find(openQueue(3, :) > newNode(3), 1);
-                    if isempty(ind)
-                        openQueue = [openQueue, newNode]; %new biggest
-                    else
-                        openQueue = [openQueue(:, 1:ind-1), newNode, openQueue(:, ind:end)];
-                    end
+                    newNode = [lookAt; new_f; target(1:2)];
+                    openQueue = [openQueue, newNode];
                 else
-                    %Update the cost and parent
                     ind = find(all(openQueue(1:2, :) == lookAt, 1), 1);
-                    if cost < openQueue(3, ind)
-                        openQueue(3, ind) = cost;
+                    if new_f < openQueue(3, ind)
+                        openQueue(3, ind) = new_f;
                         openQueue(4:5, ind) = target(1:2);
                     end
                 end
             end
         end
+
+        if isempty(openQueue)
+            error('Ingen väg hittades. Start och mål är troligen separerade av hinder.');
+        end
+
+        [~, bestInd] = min(openQueue(3, :));
+        movedNode = openQueue(:, bestInd);
+        openQueue(:, bestInd) = [];
+
+        pops = pops + 1;
+        closedQueue = [closedQueue, movedNode];
+        target = movedNode;
+
+        if isequal(movedNode(1:2), goal)
+            foundGoal = true;
+        end
     end
 
-    %move the lowest cost node from open queue to closed queue
-    pops = pops + 1;
-    movedNode = openQueue(:, 1);
-    closedQueue = [closedQueue, movedNode];
-    openQueue = openQueue(:, 2:end);
+    path = closedQueue(1:2, end);
+    nextParent = closedQueue(4:5, end);
 
-    target = movedNode;
-
-    %Once the goal is added stop
-    if movedNode(1:2)' == IntelMaze.goal
-        foundGoal = true;
-    end
-end
-
-%create path from closed queue
-path = [path, closedQueue(1:2, end)];
-nextParent = closedQueue(4:5, end);
-
-for i = numel(closedQueue(1, :)) - 1: -1:1
-    if closedQueue(1:2, i) == nextParent
-        %add to path
-        path = [path, closedQueue(1:2, i)];
-        nextParent = closedQueue(4:5, i);
-    end
-end
-
-%See if/where we hit an obstacle
-path = fliplr(path);
-firstObstacleInd = 0;
-for i = 1:1:numel(path(1, :))
-    if IntelMaze.map(path(1, i), path(2, i)) ~= 0
-        seenObstacles(path(1, i), path(2, i)) = 1;
-        start = traversedPath(:, end);
-        break
-    else
-        traversedPath = [traversedPath, path(:, i)];
+    while ~isequal(nextParent, [0; 0])
+        ind = find(all(closedQueue(1:2, :) == nextParent, 1), 1, 'last');
+        path = [closedQueue(1:2, ind), path];
+        nextParent = closedQueue(4:5, ind);
     end
 end
 
-if traversedPath(:, end) == IntelMaze.goal
-    arrived = true;
-end
-end
 
-fprintf('pushes %d, pops %d', pushes, pops)
-showMap(IntelMaze, traversedPath);
-
-%% Functions
-
-%Manhattan
 function y = heuristic(a, b)
     y = abs(a(1) - b(1)) + abs(a(2) - b(2));
 end
 
+
 function showMap(Maze, path)
     figure;
-    
-    % Gör en bildmatris:
-    % 1 = fri yta / okänt, 0 = hinder
+
     display_map = ones(size(Maze.map));
     display_map(isinf(Maze.map)) = 0;
 
@@ -157,7 +118,6 @@ function showMap(Maze, path)
     set(gca, 'YDir', 'normal');
     hold on;
 
-    % Start och mål
     plot(Maze.start(2), Maze.start(1), 'bs', ...
         'MarkerFaceColor', 'b', ...
         'MarkerSize', 10);
@@ -166,11 +126,8 @@ function showMap(Maze, path)
         'MarkerFaceColor', 'y', ...
         'MarkerSize', 10);
 
-    % Path
     if ~isempty(path)
-        plot(path(2, :), path(1, :), 'g-', ...
-            'LineWidth', 2);
-
+        plot(path(2, :), path(1, :), 'g-', 'LineWidth', 2);
         plot(path(2, :), path(1, :), 'gs', ...
             'MarkerFaceColor', 'g', ...
             'MarkerSize', 3);
