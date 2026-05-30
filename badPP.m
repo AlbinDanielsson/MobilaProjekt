@@ -3,8 +3,8 @@ clc; clear;
 load FreiburgMaze.mat
 Maze = FreiburgMaze;
 
-Maze.goal = [1970; 1200];
-Maze.start = [3580; 2460];
+Maze.goal = [197; 115];
+Maze.start = [354; 242];
 
 aStar = 1; % 1 = A*, 0 = Dijkstra
 

@@ -6,32 +6,48 @@ for d = 1:length(datasets)
     filename = datasets{d};
     fprintf('\nStartar processering av: %s\n', filename);
 
-    resolution = 10;
-
     if contains(filename, 'intel')
-        map_width = 1000;
-        map_height = 1000;
+        % Intel Lab
+        resolution = 10;        % celler per meter, 10 = 10 cm/cell
+        map_width_m = 100;      % kartbredd i meter
+        map_height_m = 100;     % karthöjd i meter
+
+        map_width = map_width_m * resolution;
+        map_height = map_height_m * resolution;
+
         offset_x = map_width / 2;
         offset_y = map_height / 2;
+
         fig_name = 'Occupancy Grid Map - Intel Lab';
         max_trust_range = 20.5;
 
         mat_file = 'IntelMaze.mat';
         var_name = 'IntelMaze';
 
-        max_grid_size = 1000;   % Intel: max storlek för Maze
     else
-        map_width = 4000;
-        map_height = 4000;
-        offset_x = map_width / 2 - 1000;
-        offset_y = map_height / 2 + 1000;
+        % Freiburg Campus
+        resolution = 1;         % celler per meter, 3 = ca 33 cm/cell
+        map_width_m = 400;      % kartbredd i meter
+        map_height_m = 400;     % karthöjd i meter
+
+        map_width = map_width_m * resolution;
+        map_height = map_height_m * resolution;
+
+        % Samma princip som tidigare, men uttryckt i meter först.
+        % Tidigare vid resolution=10:
+        % offset_x = 4000/2 - 1000 = 1000 celler = 100 meter
+        % offset_y = 4000/2 + 1000 = 3000 celler = 300 meter
+        offset_x_m = map_width_m / 2 - 100;
+        offset_y_m = map_height_m / 2 + 100;
+
+        offset_x = offset_x_m * resolution;
+        offset_y = offset_y_m * resolution;
+
         fig_name = 'Occupancy Grid Map - Freiburg Campus';
         max_trust_range = 55;
 
         mat_file = 'FreiburgMaze.mat';
         var_name = 'FreiburgMaze';
-
-        max_grid_size = 1000;   % Freiburg: skalas ner till max 1000
     end
 
     map_log_odds = zeros(map_height, map_width);
@@ -65,6 +81,9 @@ for d = 1:length(datasets)
             robot_cell_x = round(robot_x * resolution) + offset_x;
             robot_cell_y = round(robot_y * resolution) + offset_y;
 
+            robot_cell_x = round(robot_cell_x);
+            robot_cell_y = round(robot_cell_y);
+
             if isempty(first_robot_cell)
                 first_robot_cell = [robot_cell_y; robot_cell_x]; % [row; col]
             end
@@ -77,7 +96,7 @@ for d = 1:length(datasets)
             count = count + 1;
 
             if mod(count, 100) == 0
-                imagesc(flipud(1 - 1./(1+exp(map_log_odds))));
+                imagesc(flipud(1 - 1./(1 + exp(map_log_odds))));
                 axis equal;
                 set(gca, 'YDir', 'reverse');
                 title(sprintf('Genererar %s... Tidssteg: %d', filename, count));
@@ -88,7 +107,7 @@ for d = 1:length(datasets)
 
     fclose(fid);
 
-    imagesc(flipud(1 - 1./(1+exp(map_log_odds))));
+    imagesc(flipud(1 - 1./(1 + exp(map_log_odds))));
     axis equal;
     set(gca, 'YDir', 'reverse');
     title(['Färdig karta: ', filename]);
@@ -104,7 +123,10 @@ for d = 1:length(datasets)
         first_robot_cell, ...
         last_robot_cell, ...
         mat_file, ...
-        var_name);
+        var_name, ...
+        resolution, ...
+        offset_x, ...
+        offset_y);
 
     fprintf('Sparade %s\n', mat_file);
 end
@@ -112,23 +134,19 @@ end
 fprintf('\nBåda kartorna har genererats och exporterats!\n');
 
 
-function make_planning_maze(map_log_odds, start_cell, goal_cell, out_file, var_name)
+function make_planning_maze(map_log_odds, start_cell, goal_cell, out_file, var_name, resolution, offset_x, offset_y)
     % Skapar en path-planning-kompatibel Maze med samma storlek som grid map:
-    %   Maze.map   : 0 = fri yta, inf = hinder eller okänt
-    %   Maze.start : [row; col]
-    %   Maze.goal  : [row; col]
+    %   Maze.map        : 0 = fri yta, inf = hinder eller okänt
+    %   Maze.start      : [row; col]
+    %   Maze.goal       : [row; col]
+    %   Maze.resolution : celler per meter
+    %   Maze.offset     : [offset_y; offset_x]
 
     free_threshold = 0.35;
     inflate_cells = 1;
 
-    % Log-odds till sannolikhet för upptaget.
-    % map_log_odds < 0 => fri yta
-    % map_log_odds = 0 => okänt
-    % map_log_odds > 0 => hinder
     prob_occ = 1 ./ (1 + exp(-map_log_odds));
 
-    % Endast tydligt fri yta blir körbar.
-    % Allt annat, alltså hinder och okänt, blir blockerad yta.
     free = prob_occ < free_threshold;
 
     planning_map = inf(size(map_log_odds));
@@ -139,20 +157,20 @@ function make_planning_maze(map_log_odds, start_cell, goal_cell, out_file, var_n
     start = start_cell(:);
     goal = goal_cell(:);
 
-    % Säkerställ att start och mål ligger inom kartan
     start(1) = min(max(start(1), 1), size(planning_map, 1));
     start(2) = min(max(start(2), 1), size(planning_map, 2));
 
     goal(1) = min(max(goal(1), 1), size(planning_map, 1));
     goal(2) = min(max(goal(2), 1), size(planning_map, 2));
 
-    % Start och mål måste vara körbara
     planning_map(start(1), start(2)) = 0;
     planning_map(goal(1), goal(2)) = 0;
 
     Maze.map = planning_map;
     Maze.start = start;
     Maze.goal = goal;
+    Maze.resolution = resolution;
+    Maze.offset = [offset_y; offset_x];
 
     eval([var_name ' = Maze;']);
     save(out_file, var_name);

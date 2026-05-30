@@ -3,8 +3,8 @@ clc; clear;
 load FreiburgMaze.mat
 Maze = FreiburgMaze;
 
-Maze.goal = [1970; 1200];
-Maze.start = [3580; 2460];
+Maze.goal = [197; 115];
+Maze.start = [354; 242];
 
 path = zeros(2, 0);
 showMap(Maze, path);
@@ -28,7 +28,7 @@ function [path, nodes] = planPathRRTStar(Maze)
     end
 
     maxIterations = 20000;
-    stepSize = 35;
+    stepSize = 3500;
     goalRadius = 45;
     rewireRadius = 80;
     goalBias = 0.10;
