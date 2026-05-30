@@ -2,7 +2,7 @@ clear;
 clc; 
 close all;
 % algorithm names
-algos = {'Dijkstra', 'Astar'};
+algos = {'Astar'};
 
 fprintf('%s | %s | %s | %s | %s | %s\n', 'MAP', 'CASE', 'ALGO', 'PUSHES', 'POPS', 'TIME(s)');
 
@@ -12,9 +12,10 @@ for map_number = 1:2
     % Load the map data
     if map_number == 1
         load('IntelMaze.mat'); 
-        map = IntelMaze.map; s_pos = IntelMaze.start; g_pos = IntelMaze.goal; name = 'Intel Lab';
+        map = IntelMaze.map; IntelMaze.goal = [274; 410]; IntelMaze.start = [550; 581];
+        s_pos = IntelMaze.start; g_pos = IntelMaze.goal; name = 'Intel Lab';
     else
-        load('FreiburgMaze.mat'); 
+        load('FreiburgMaze.mat'); FreiburgMaze.goal = [197; 115]; FreiburgMaze.start = [354; 242];
         map = FreiburgMaze.map; s_pos = FreiburgMaze.start; g_pos = FreiburgMaze.goal; name = 'Freiburg Campus';
     end
     
