@@ -47,22 +47,32 @@ for map_number = 1:2
             
             
             % Plotting
+
             figure('Name', sprintf('%s - %s - %s', name, case_lbl, algo));
+            
+            % KORRIGERING 1: Transponera matrisen (map') så att den matchar din labbkoda!
+            % Vi kollar var kartan har värdet inf.
             
             imagesc(map == 0); 
             colormap(gray); 
-            hold all;
+            hold all; % Behåll din ursprungliga 'hold all'
             
+            % Rita den beräknade rutten
             if ~isempty(path)
                 plot(path(:,2), path(:,1), 'g-', 'LineWidth', 2.5); 
             end
             
+            % Rita Start (Blå kvadrat) och Mål (Gul kvadrat)
             plot(s_pos(2), s_pos(1), 'sb', 'MarkerFaceColor', 'b', 'MarkerSize', 10, 'color', 'b');
             plot(g_pos(2), g_pos(1), 'sy', 'MarkerFaceColor', 'y', 'MarkerSize', 10, 'color', 'y');
             
             title(sprintf('%s [%s Case] - %s', name, case_lbl, algo));
             axis equal; 
-            axis([1 size(map,1) 1 size(map,2)]);          
+            axis([1 size(map,1) 1 size(map,2)]);
+            
+            % KORRIGERING 2: Ställ in Y-axeln så den stämmer med din gamla view(2)
+            %set(gca, 'YDir', 'reverse'); 
+            
             hold off;
             
         end
