@@ -79,39 +79,3 @@ for map_number = 1:2
     end
     fprintf('------------------------------------------------------------------------\n');
 end
-
-% Helper function to run Dijkstra/A* in an unknown map
-function [traj, t_push, t_pop, total_t] = run_unknown_standard(act_map, s_pos, g_pos, type)
-    tic; t_push = 0; t_pop = 0;
-    k_map = zeros(size(act_map,1), size(act_map,2)); % Start with empty map
-    curr = s_pos; traj = curr;
-    
-    [c_path, psh, pp, ~] = planner(k_map, curr, g_pos, type);
-    t_push = t_push + psh; t_pop = t_pop + pp;
-    
-    while ~isempty(c_path) && ~isequal(curr, g_pos)
-        replanned = false;
-        % Check 8 neighbor cells for walls
-        for dx = -1:1
-            for dy = -1:1
-                nx = curr(1)+dx; ny = curr(2)+dy;
-                if nx>=1 && nx<=size(act_map,1) && ny>=1 && ny<=size(act_map,2)
-                    if act_map(nx,ny) == inf && k_map(nx,ny) ~= inf
-                        k_map(nx,ny) = inf; replanned = true; % Discovered new obstacle
-                    end
-                end
-            end
-        end
-        % Replan path from current spot if a wall was detected
-        if replanned
-            [c_path, psh, pp, ~] = planner(k_map, curr, g_pos, type);
-            t_push = t_push + psh; t_pop = t_pop + pp;
-            if isempty(c_path), break; end
-        end
-        % Take a step forward along the path
-        if size(c_path, 1) > 1
-            curr = c_path(2, :); traj = [traj; curr]; c_path(1, :) = [];
-        else, break; end
-    end
-    total_t = toc;
-end
