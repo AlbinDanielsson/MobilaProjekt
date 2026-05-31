@@ -217,23 +217,36 @@ function map = update_occupancy_grid(map, rx, ry, rtheta, ranges, res, off_x, of
     end
 end
 
+%Returns matrix with all indicies hit by a line going between two points
 function [x, y] = bresenham(x1, y1, x2, y2)
-    dx = abs(x2 - x1); dy = abs(y2 - y1);
-    sx = sign(x2 - x1); sy = sign(y2 - y1);
-    x = x1; y = y1;
+    dx = abs(x2 - x1); 
+    dy = abs(y2 - y1);
+
+    sx = sign(x2 - x1); 
+    sy = sign(y2 - y1);
+
+    x = x1; 
+    y = y1;
+
     if dx > dy
+        %Err is used for rounding
+        % = 0.5 dx since we round upwards
         err = dx / 2;
+
+        %Increment x by +/- 1 until we reach the second point
         while x(end) ~= x2
             x = [x; x(end) + sx];
+
+            %Repeat same value of y until we round up to a new value
             err = err - dy;
             if err < 0
                 y = [y; y(end) + sy];
-                err = err + dx;
+                err = err + dx; % 1.5 dx, 2.5dx...
             else
                 y = [y; y(end)];
             end
         end
-    else
+    else %same as other case but x,y flipped
         err = dy / 2;
         while y(end) ~= y2
             y = [y; y(end) + sy];
