@@ -1,10 +1,10 @@
 clc; clear;
 
-%load FreiburgMaze.mat
-%Maze = FreiburgMaze;
-%Maze.goal = [197; 115];
-%Maze.start = [354; 242];
-
+load FreiburgMaze.mat
+Maze = FreiburgMaze;
+Maze.goal = [197; 115];
+Maze.start = [354; 242];
+tic
 load IntelMaze.mat
 Maze = IntelMaze;
 Maze.goal = [274; 410];
@@ -104,7 +104,7 @@ function [path, pushes, pops] = planPath(Maze, aStar)
     end
 end
 
-
+toc
 function y = heuristic(a, b)
     y = abs(a(1) - b(1)) + abs(a(2) - b(2));
 end
