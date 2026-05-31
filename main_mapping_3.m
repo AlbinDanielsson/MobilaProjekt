@@ -188,11 +188,7 @@ function map = update_occupancy_grid(map, rx, ry, rtheta, ranges, res, off_x, of
     robot_cell_y = round(ry * res) + off_y;
     num_angles = length(ranges);
     
-    if num_angles <= 181
-        angles = linspace(-pi/2, pi/2, num_angles);
-    else
-        angles = linspace(-pi/2, pi/2, num_angles); 
-    end
+    angles = linspace(-pi/2, pi/2, num_angles); 
     
     for i = 1:num_angles
         r = ranges(i);
