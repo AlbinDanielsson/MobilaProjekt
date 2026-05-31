@@ -2,7 +2,7 @@ clear;
 clc; 
 close all;
 % algorithm names
-algos = {'Dijkstra', 'Astar'};
+algos = {'Astar'};
 
 fprintf('%s | %s | %s | %s | %s | %s\n', 'MAP', 'CASE', 'ALGO', 'PUSHES', 'POPS', 'TIME(s)');
 
@@ -12,18 +12,20 @@ for map_number = 1:2
     % Load the map data
     if map_number == 1
         load('IntelMaze.mat'); 
-        map = IntelMaze.map; s_pos = IntelMaze.start; g_pos = IntelMaze.goal; name = 'Intel Lab';
+        map = IntelMaze.map; IntelMaze.goal = [413; 724]; IntelMaze.start = [591; 448];
+        s_pos = IntelMaze.start; g_pos = IntelMaze.goal; name = 'Intel Lab';
     else
-        load('FreiburgMaze.mat'); 
+        load('FreiburgMaze.mat'); FreiburgMaze.goal = [197; 115]; FreiburgMaze.start = [354; 242];
         map = FreiburgMaze.map; s_pos = FreiburgMaze.start; g_pos = FreiburgMaze.goal; name = 'Freiburg Campus';
     end
+    map = flipud(map);
     
     % known environment and unknown environment
-    for case_type = 1:2
+    for case_type = 1:1
         if case_type == 1, case_lbl = 'Known'; else, case_lbl = 'Unknown'; end
         
-        % run all 3 algorithms
-        for a = 1:3
+        % run all algorithms
+        for a = 1:length(algos)
             algo = algos{a};
             
             if strcmp(algo, 'DStarLite')
@@ -43,29 +45,32 @@ for map_number = 1:2
             
             
             % Plotting
+           % --- KORRIGERAD PLOTTNING SOM MATCHAR DIN PLANNER ---
             figure('Name', sprintf('%s - %s - %s', name, case_lbl, algo));
             
-            bg_grid = zeros(size(map,1), size(map,2));
-            surf(bg_grid');
-            colormap(gray); 
-            view(2); 
-            hold all;
-
-            %plotting obstacles
-            for i=1:size(bg_grid,1)
-                 for j=1:size(bg_grid,2)
-                    if(map(i,j)==inf)
-                        plot(i,j,'s','LineWidth',1,'MarkerFaceColor','w','color','w', 'MarkerSize',5);
-                    end
-                 end
-            end 
+            % KORRIGERING 1: Transponera matrisen (map') så att den matchar din labbkoda!
+            % Vi kollar var kartan har värdet inf.
             
-            plot(path(:,1), path(:,2), 'g-', 'LineWidth', 2.5); 
+            imagesc(map == inf); 
+            colormap(gray); 
+            hold all; % Behåll din ursprungliga 'hold all'
+            
+            % Rita den beräknade rutten
+            if ~isempty(path)
+                plot(path(:,1), path(:,2), 'g-', 'LineWidth', 2.5); 
+            end
+            
+            % Rita Start (Blå kvadrat) och Mål (Gul kvadrat)
             plot(s_pos(1), s_pos(2), 'sb', 'MarkerFaceColor', 'b', 'MarkerSize', 10, 'color', 'b');
-            plot(g_pos(1), g_pos(2), 'sy', 'MarkerFaceColor', 'y', 'MarkerSize', 10, 'color', 'y');
+            plot(g_pos(1), g_pos(2),  'sy', 'MarkerFaceColor', 'y', 'MarkerSize', 10, 'color', 'y');
+            
             title(sprintf('%s [%s Case] - %s', name, case_lbl, algo));
             axis equal; 
             axis([1 size(map,2) 1 size(map,1)]);
+            
+            % KORRIGERING 2: Ställ in Y-axeln så den stämmer med din gamla view(2)
+            %set(gca, 'YDir', 'reverse'); 
+            
             hold off;
             
         end

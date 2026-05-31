@@ -2,7 +2,7 @@ clear;
 clc; 
 close all;
 % algorithm names
-algos = {'Astar'};
+algos = {'Astar', 'DStarLite'};
 
 fprintf('%s | %s | %s | %s | %s | %s\n', 'MAP', 'CASE', 'ALGO', 'PUSHES', 'POPS', 'TIME(s)');
 
@@ -12,15 +12,16 @@ for map_number = 1:2
     % Load the map data
     if map_number == 1
         load('IntelMaze.mat'); 
-        map = IntelMaze.map; IntelMaze.goal = [274; 410]; IntelMaze.start = [550; 581];
+        map = IntelMaze.map; IntelMaze.start = [291, 46]; IntelMaze.goal = [33, 225];
         s_pos = IntelMaze.start; g_pos = IntelMaze.goal; name = 'Intel Lab';
     else
-        load('FreiburgMaze.mat'); FreiburgMaze.goal = [197; 115]; FreiburgMaze.start = [354; 242];
-        map = FreiburgMaze.map; s_pos = FreiburgMaze.start; g_pos = FreiburgMaze.goal; name = 'Freiburg Campus';
+        load('FreiburgMaze.mat'); 
+        map = FreiburgMaze.map; FreiburgMaze.start = [197, 87]; FreiburgMaze.goal = [48, 149];
+        s_pos = FreiburgMaze.start; g_pos = FreiburgMaze.goal; name = 'Freiburg Campus';
     end
     
     % known environment and unknown environment
-    for case_type = 1:1
+    for case_type = 1:2
         if case_type == 1, case_lbl = 'Known'; else, case_lbl = 'Unknown'; end
         
         % run all algorithms
@@ -44,27 +45,32 @@ for map_number = 1:2
             
             
             % Plotting
+           % --- KORRIGERAD PLOTTNING SOM MATCHAR DIN PLANNER ---
             figure('Name', sprintf('%s - %s - %s', name, case_lbl, algo));
             
-            % Skapar en bild där hinder (inf) blir helt vita (1) och fri yta blir svart (0)
-            % Detta ritar hela kartan i ett enda svep på en mikrosekund!
-            imagesc(map == inf); 
-            colormap(gray); 
-            hold on;
+            % KORRIGERING 1: Transponera matrisen (map') så att den matchar din labbkoda!
+            % Vi kollar var kartan har värdet inf.
             
-            % Rita den beräknade rutten i grönt
+            imagesc(map == 0); 
+            colormap(gray); 
+            hold all; % Behåll din ursprungliga 'hold all'
+            
+            % Rita den beräknade rutten
             if ~isempty(path)
-                plot(path(:,1), path(:,2), 'g-', 'LineWidth', 2.5); 
+                plot(path(:,2), path(:,1), 'g-', 'LineWidth', 2.5); 
             end
             
             % Rita Start (Blå kvadrat) och Mål (Gul kvadrat)
-            plot(s_pos(1), s_pos(2), 'sb', 'MarkerFaceColor', 'b', 'MarkerSize', 10, 'color', 'b');
-            plot(g_pos(1), g_pos(2), 'sy', 'MarkerFaceColor', 'y', 'MarkerSize', 10, 'color', 'y');
+            plot(s_pos(2), s_pos(1), 'sb', 'MarkerFaceColor', 'b', 'MarkerSize', 10, 'color', 'b');
+            plot(g_pos(2), g_pos(1), 'sy', 'MarkerFaceColor', 'y', 'MarkerSize', 10, 'color', 'y');
             
             title(sprintf('%s [%s Case] - %s', name, case_lbl, algo));
             axis equal; 
-            axis([1 size(map,2) 1 size(map,1)]);
-            set(gca, 'YDir', 'normal'); % Håller koordinatsystemet rättvänt
+            axis([1 size(map,1) 1 size(map,2)]);
+            
+            % KORRIGERING 2: Ställ in Y-axeln så den stämmer med din gamla view(2)
+            %set(gca, 'YDir', 'reverse'); 
+            
             hold off;
             
         end

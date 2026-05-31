@@ -3,10 +3,13 @@ datasets = {'intel.gfs.log', 'fr-campus-20040714.carmen.gfs.log'};
 for d = 1:length(datasets)
     filename = datasets{d};
     fprintf('\nStartar processering av: %s\n', filename);
-    resolution = 10;
     if contains(filename, 'intel')
-        map_width = 1000;
-        map_height = 1000;
+        % Intel Lab
+        resolution = 10;        % celler per meter, 10 = 10 cm/cell
+        map_width_m = 100;      % kartbredd i meter
+        map_height_m = 100;     % karthöjd i meter
+        map_width = map_width_m * resolution;
+        map_height = map_height_m * resolution;
         offset_x = map_width / 2;
         offset_y = map_height / 2;
         fig_name = 'Occupancy Grid Map - Intel Lab';
@@ -14,10 +17,16 @@ for d = 1:length(datasets)
         mat_file = 'IntelMaze.mat';
         var_name = 'IntelMaze';
     else
-        map_width = 4000;
-        map_height = 4000;
-        offset_x = map_width / 2 - 1000;
-        offset_y = map_height / 2 + 1000;
+        % Freiburg Campus
+        resolution = 1;         % celler per meter
+        map_width_m = 400;      % kartbredd i meter
+        map_height_m = 400;     % karthöjd i meter
+        map_width = map_width_m * resolution;
+        map_height = map_height_m * resolution;
+        offset_x_m = map_width_m / 2 - 100;
+        offset_y_m = map_height_m / 2 + 100;
+        offset_x = offset_x_m * resolution;
+        offset_y = offset_y_m * resolution;
         fig_name = 'Occupancy Grid Map - Freiburg Campus';
         max_trust_range = 55;
         mat_file = 'FreiburgMaze.mat';
@@ -45,6 +54,7 @@ for d = 1:length(datasets)
             robot_theta = str2double(data{5 + num_readings});
             robot_cell_x = round(robot_x * resolution) + offset_x;
             robot_cell_y = round(robot_y * resolution) + offset_y;
+            
             if isempty(first_robot_cell)
                 first_robot_cell = [robot_cell_y; robot_cell_x]; % [row; col]
             end
@@ -54,7 +64,7 @@ for d = 1:length(datasets)
                 resolution, offset_x, offset_y, max_trust_range);
             count = count + 1;
             if mod(count, 100) == 0
-                imagesc(flipud(1 - 1./(1+exp(map_log_odds))));
+                imagesc(flipud(1 - 1./(1 + exp(map_log_odds))));
                 axis equal;
                 set(gca, 'YDir', 'reverse');
                 title(sprintf('Genererar %s... Tidssteg: %d', filename, count));
@@ -63,52 +73,91 @@ for d = 1:length(datasets)
         end
     end
     fclose(fid);
-    imagesc(flipud(1 - 1./(1+exp(map_log_odds))));
+    imagesc(flipud(1 - 1./(1 + exp(map_log_odds))));
     axis equal;
     set(gca, 'YDir', 'reverse');
     title(['Färdig karta: ', filename]);
     
-    if contains(filename, 'intel')
-        intel_map = map_log_odds;
-    else
-        freiburg_map = map_log_odds;
-    end
-    
-    % FIX: Nu skickar vi med resolution, offset_x och offset_y till funktionen!
-    make_planning_maze(map_log_odds, first_robot_cell, last_robot_cell, mat_file, var_name, resolution, offset_x, offset_y);
-    
+    % Spara och exportera den färdiga, rensade och flippade planeringskartan
+    make_planning_maze( ...
+        map_log_odds, ...
+        first_robot_cell, ...
+        last_robot_cell, ...
+        mat_file, ...
+        var_name, ...
+        resolution, ...
+        offset_x, ...
+        offset_y);
     fprintf('Sparade %s\n', mat_file);
 end
 fprintf('\nBåda kartorna har genererats och exporterats!\n');
 
-% =========================================================================
-% LOKALA FUNKTIONER
-% =========================================================================
-
 function make_planning_maze(map_log_odds, start_cell, goal_cell, out_file, var_name, resolution, offset_x, offset_y)
-    free_threshold = 0.65;
+    % Skapar en path-planning-kompatibel Maze med samma storlek som grid map:
+    %   Maze.map        : 0 = fri yta, inf = hinder eller okänt
+    %   Maze.start      : [col; row] (Anpassad till din planner.m [X; Y])
+    %   Maze.goal       : [col; row] (Anpassad till din planner.m [X; Y])
+    
+    free_threshold = 0.35;
     inflate_cells = 1;
+    crop_padding = 20; % Säkerhetsmarginal med extra celler utanför de fria ytorna
+    
+    % 1. Skapa den råa matrisen utifrån sannolikheter (allt okänt/vägg = inf till att börja med)
     prob_occ = 1 ./ (1 + exp(-map_log_odds));
     free = prob_occ < free_threshold;
-    planning_map = inf(size(map_log_odds));
-    planning_map(free) = 0;
-    planning_map = inflate_obstacles(planning_map, inflate_cells);
-    start = start_cell(:);
-    goal = goal_cell(:);
-    start(1) = min(max(start(1), 1), size(planning_map, 1));
-    start(2) = min(max(start(2), 1), size(planning_map, 2));
-    goal(1) = min(max(goal(1), 1), size(planning_map, 1));
-    goal(2) = min(max(goal(2), 1), size(planning_map, 2));
-    planning_map(start(1), start(2)) = 0;
-    planning_map(goal(1), goal(2)) = 0;
-    Maze.map = planning_map;
     
-    % KORRIGERING: Spara som [X; Y] dvs [kolumn; rad] så din planner läser rätt axel
-    Maze.start = [start(2); start(1)]; 
-    Maze.goal = [goal(2); goal(1)];
+    planning_map = inf(size(map_log_odds));
+    planning_map(free) = 0; % <--- Här sätts allt till 0 eller inf
+    
+    % 2. BERÄKNA BOUNDS UTIFRÅN DEN FÄRDIGA PLANNING_MAP
+    % Vi letar efter alla celler som har tilldelats fri yta (värde 0)
+    [free_rows, free_cols] = find(planning_map == 0);
+    
+    if isempty(free_rows)
+        min_y = 1; max_y = size(planning_map, 1);
+        min_x = 1; max_x = size(planning_map, 2);
+    else
+        % Vi expanderar rektangeln med crop_padding utanför de fria cellerna
+        % Detta säkerställer att väggarna precis utanför kommer med!
+        min_y = max(min(free_rows) - crop_padding, 1);
+        max_y = min(max(free_rows) + crop_padding, size(planning_map, 1));
+        min_x = max(min(free_cols) - crop_padding, 1);
+        max_x = min(max(free_cols) + crop_padding, size(planning_map, 2));
+    end
+    
+    % 3. Skär ut rektangeln ur vår tilldelade planning_map
+    cropped_map = planning_map(min_y:max_y, min_x:max_x);
+    
+    % Justera start- och målkoordinaterna baserat på den nya rektangelns startpunkt
+    start_cropped = [start_cell(1) - min_y + 1; start_cell(2) - min_x + 1];
+    goal_cropped  = [goal_cell(1) - min_y + 1;  goal_cell(2) - min_x + 1];
+    
+    % 4. FLIPPA MATRISEN OCH KOORDINATERNA HÄR (Så att allt är rättvänt för run_lab3)
+    cropped_map = flipud(cropped_map);
+    start_cropped(1) = size(cropped_map, 1) - start_cropped(1) + 1;
+    goal_cropped(1)  = size(cropped_map, 1) - goal_cropped(1) + 1;
+    
+    % Säkerställ bounds efter flippen och justeringen
+    start_cropped(1) = min(max(start_cropped(1), 1), size(cropped_map, 1));
+    start_cropped(2) = min(max(start_cropped(2), 1), size(cropped_map, 2));
+    goal_cropped(1)  = min(max(goal_cropped(1), 1), size(cropped_map, 1));
+    goal_cropped(2)  = min(max(goal_cropped(2), 1), size(cropped_map, 2));
+    
+    % 5. Kör hinder-expansion på den färdigrätta och croppade kartan
+    cropped_map = inflate_obstacles(cropped_map, inflate_cells);
+    
+    % Garantera och tvinga att start och mål alltid är öppna (0)
+    cropped_map(start_cropped(1), start_cropped(2)) = 0;
+    cropped_map(goal_cropped(1), goal_cropped(2)) = 0;
+    
+    % 6. Spara i .mat med formatet [X; Y] -> [kolumn; rad] för din planner.m
+    Maze.map = cropped_map;
+    Maze.start = [start_cropped(2); start_cropped(1)]; 
+    Maze.goal  = [goal_cropped(2);  goal_cropped(1)];
     
     Maze.resolution = resolution;
     Maze.offset = [offset_y; offset_x];
+    
     eval([var_name ' = Maze;']);
     save(out_file, var_name);
 end
