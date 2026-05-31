@@ -2,7 +2,7 @@ clear;
 clc; 
 close all;
 % algorithm names
-algos = {'Astar', 'DStarLite'};
+algos = {'Astar', 'RRTstar'};
 
 fprintf('%s | %s | %s | %s | %s | %s\n', 'MAP', 'CASE', 'ALGO', 'PUSHES', 'POPS', 'TIME(s)');
 
@@ -21,7 +21,7 @@ for map_number = 1:2
     end
     
     % known environment and unknown environment
-    for case_type = 1:2
+    for case_type = 1:1
         if case_type == 1, case_lbl = 'Known'; else, case_lbl = 'Unknown'; end
         
         % run all algorithms
@@ -30,6 +30,8 @@ for map_number = 1:2
             
             if strcmp(algo, 'DStarLite')
                 [path, psh, pp, t] = dstar_lite_planner(map, s_pos, g_pos, (case_type == 1));
+            elseif strcmp(algo, 'RRTstar')
+                [path, psh, pp, t] = rrt_star_planner(map, s_pos, g_pos);
             else
                 if case_type == 1
                     % Planner for A* or dijkstra for known
