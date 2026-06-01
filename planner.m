@@ -6,7 +6,7 @@ function [path, pushes, pops, exec_time] = planner(map, startPos, goalPos, algoT
     g = inf(rows, cols);          
     f = inf(rows, cols);          
     parentX = zeros(rows, cols);  % To backtrack the path
-    parentY = zeros(rows, cols);
+    parentY = zeros(rows, cols); 
     closed_set = false(rows, cols); 
     open_set = false(rows, cols);   % Nodes in queue
     

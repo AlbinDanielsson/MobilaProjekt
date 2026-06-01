@@ -13,11 +13,11 @@ for map_number = 1:2
     if map_number == 1
         load('IntelMaze.mat'); 
         map = IntelMaze.map; IntelMaze.start = [291, 46]; IntelMaze.goal = [33, 225];
-        s_pos = IntelMaze.start; g_pos = IntelMaze.goal; name = 'Intel Lab';
+        s_pos = IntelMaze.start; g_pos = IntelMaze.goal; name = 'Intel Lab'; resolution = IntelMaze.resolution;
     else
         load('FreiburgMaze.mat'); 
         map = FreiburgMaze.map; FreiburgMaze.start = [197, 87]; FreiburgMaze.goal = [48, 149];
-        s_pos = FreiburgMaze.start; g_pos = FreiburgMaze.goal; name = 'Freiburg Campus';
+        s_pos = FreiburgMaze.start; g_pos = FreiburgMaze.goal; name = 'Freiburg Campus'; resolution = FreiburgMaze.resolution;
     end
     
     % known environment and unknown environment
@@ -52,7 +52,8 @@ for map_number = 1:2
                         path_length = path_length + step_dist;
                     end
                 end
-            
+            path_length = path_length/resolution;
+
             % Output
             fprintf('%s | %s | %s | %d | %d | %f | %f\n', name, case_lbl, algo, psh, pp,path_length, t);
             

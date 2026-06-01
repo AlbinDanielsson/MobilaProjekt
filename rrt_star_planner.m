@@ -12,7 +12,6 @@ function [path, pushes, pops, exec_time] = rrt_star_planner(map, startPos, goalP
    
     % Initialize nodes [X, Y, Cost, Parent_Index]
     nodes = [startPos(1), startPos(2), 0, 0];
-    pushes = pushes + 1;
     
     found_goal = false;
     best_goal_idx = 0;
@@ -66,9 +65,8 @@ function [path, pushes, pops, exec_time] = rrt_star_planner(map, startPos, goalP
             end
         end
         
-        % Lägg till den nya optimerade noden i trädet
+        % Add new node
         nodes = [nodes; x_new, y_new, min_cost, best_parent];
-        pushes = pushes + 1;
         new_node_idx = size(nodes, 1);
         
         % Optimize, Rewire
@@ -78,12 +76,11 @@ function [path, pushes, pops, exec_time] = rrt_star_planner(map, startPos, goalP
             
             if new_cost_for_neighbor < nodes(n_idx, 3)
                 if ~check_collision(map, x_new, y_new, nodes(n_idx, 1), nodes(n_idx, 2))
-                    % Beräkna hur mycket kostnaden sjunker för den här noden
+
                     cost_difference = nodes(n_idx, 3) - new_cost_for_neighbor;
                     
                     nodes(n_idx, 3) = new_cost_for_neighbor;
-                    nodes(n_idx, 4) = new_node_idx; % Byt förälder
-                    pops = pops + 1;
+                    nodes(n_idx, 4) = new_node_idx; % new parent
                     
                     % Propagate cost to kids
                     nodes = propagate_cost(nodes, n_idx, cost_difference);
@@ -113,8 +110,7 @@ function [path, pushes, pops, exec_time] = rrt_star_planner(map, startPos, goalP
         
         while curr_idx ~= 0
             path = [nodes(curr_idx, 1), nodes(curr_idx, 2); path];
-            curr_idx = nodes(curr_idx, 4); 
-            pops = pops + 1;
+            curr_idx = nodes(curr_idx, 4);
         end
     else
         fprintf('RRT* failed to reach goal');
