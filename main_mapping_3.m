@@ -46,7 +46,11 @@ for d = 1:length(datasets)
 
     figure('Name', fig_name);
     colormap(gray);
-    count = 0;
+    count = 0; %Only used for plotting
+
+    %Currently we set the beginning and end of the robots tour
+    %as the start and goal positions, this is overwritten in pathfinder
+    %files
     first_robot_cell = [];
     last_robot_cell = [];
 
