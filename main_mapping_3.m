@@ -93,61 +93,38 @@ end
 fprintf('\nBåda kartorna har genererats och exporterats!\n');
 
 function make_planning_maze(map_log_odds, start_cell, goal_cell, out_file, var_name, resolution, offset_x, offset_y)
-    % Skapar en path-planning-kompatibel Maze med samma storlek som grid map:
-    %   Maze.map        : 0 = fri yta, inf = hinder eller okänt
-    %   Maze.start      : [col; row] (Anpassad till din planner.m [X; Y])
-    %   Maze.goal       : [col; row] (Anpassad till din planner.m [X; Y])
-    
-    free_threshold = 0.35;
+
+    free_threshold = 0.35; %bigger means more free
     inflate_cells = 1;
-    crop_padding = 20; % Säkerhetsmarginal med extra celler utanför de fria ytorna
     
-    % 1. Skapa den råa matrisen utifrån sannolikheter (allt okänt/vägg = inf till att börja med)
-    prob_occ = 1 ./ (1 + exp(-map_log_odds));
-    free = prob_occ < free_threshold;
-    
+    %Make matrix of just obstacles (inf) and free cells (0)
+    prob_occ = 1 ./ (1 + exp(-map_log_odds)); %from ELA408_SLAM-10 page 102
+    free = prob_occ < free_threshold; %free is binary matrix
+
     planning_map = inf(size(map_log_odds));
-    planning_map(free) = 0; % <--- Här sätts allt till 0 eller inf
+    planning_map(free) = 0;
     
-    % 2. BERÄKNA BOUNDS UTIFRÅN DEN FÄRDIGA PLANNING_MAP
-    % Vi letar efter alla celler som har tilldelats fri yta (värde 0)
+    %Cut out as much grey area as we can
+    crop_margin = 20;
     [free_rows, free_cols] = find(planning_map == 0);
+
+    min_y = max(min(free_rows) - crop_margin, 1);
+    max_y = min(max(free_rows) + crop_margin, size(planning_map, 1));
+    min_x = max(min(free_cols) - crop_margin, 1);
+    max_x = min(max(free_cols) + crop_margin, size(planning_map, 2));
     
-    if isempty(free_rows)
-        min_y = 1; max_y = size(planning_map, 1);
-        min_x = 1; max_x = size(planning_map, 2);
-    else
-        % Vi expanderar rektangeln med crop_padding utanför de fria cellerna
-        % Detta säkerställer att väggarna precis utanför kommer med!
-        min_y = max(min(free_rows) - crop_padding, 1);
-        max_y = min(max(free_rows) + crop_padding, size(planning_map, 1));
-        min_x = max(min(free_cols) - crop_padding, 1);
-        max_x = min(max(free_cols) + crop_padding, size(planning_map, 2));
-    end
-    
-    % 3. Skär ut rektangeln ur vår tilldelade planning_map
     cropped_map = planning_map(min_y:max_y, min_x:max_x);
     
-    % Justera start- och målkoordinaterna baserat på den nya rektangelns startpunkt
-    start_cropped = [start_cell(1) - min_y + 1; start_cell(2) - min_x + 1];
-    goal_cropped  = [goal_cell(1) - min_y + 1;  goal_cell(2) - min_x + 1];
-    
-    % 4. FLIPPA MATRISEN OCH KOORDINATERNA HÄR (Så att allt är rättvänt för run_lab3)
+    %Flip the matrix, needed for some reason
     cropped_map = flipud(cropped_map);
-    start_cropped(1) = size(cropped_map, 1) - start_cropped(1) + 1;
-    goal_cropped(1)  = size(cropped_map, 1) - goal_cropped(1) + 1;
     
     %Make obstacles bigger, to have a margin
     cropped_map = inflate_obstacles(cropped_map, inflate_cells);
     
-    % Garantera och tvinga att start och mål alltid är öppna (0)
-    cropped_map(start_cropped(1), start_cropped(2)) = 0;
-    cropped_map(goal_cropped(1), goal_cropped(2)) = 0;
-    
-    % 6. Spara i .mat med formatet [X; Y] -> [kolumn; rad] för din planner.m
+    %Save file
     Maze.map = cropped_map;
-    Maze.start = [start_cropped(2); start_cropped(1)]; 
-    Maze.goal  = [goal_cropped(2);  goal_cropped(1)];
+    Maze.start = [start_cell(2); start_cell(1)]; 
+    Maze.goal  = [goal_cell(2);  goal_cell(1)];
     
     Maze.resolution = resolution;
     Maze.offset = [offset_y; offset_x];
