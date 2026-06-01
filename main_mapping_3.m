@@ -137,7 +137,7 @@ function make_planning_maze(map_log_odds, start_cell, goal_cell, out_file, var_n
     start_cropped(1) = size(cropped_map, 1) - start_cropped(1) + 1;
     goal_cropped(1)  = size(cropped_map, 1) - goal_cropped(1) + 1;
     
-    % 5. Kör hinder-expansion på den färdigrätta och croppade kartan
+    %Make obstacles bigger, to have a margin
     cropped_map = inflate_obstacles(cropped_map, inflate_cells);
     
     % Garantera och tvinga att start och mål alltid är öppna (0)
@@ -156,6 +156,7 @@ function make_planning_maze(map_log_odds, start_cell, goal_cell, out_file, var_n
     save(out_file, var_name);
 end
 
+%Makes all obstacles bigger, by radius pixels in all directions
 function inflated = inflate_obstacles(map, radius)
     inflated = map;
     if radius <= 0
@@ -163,10 +164,12 @@ function inflated = inflate_obstacles(map, radius)
     end
     [obs_r, obs_c] = find(isinf(map));
     for k = 1:length(obs_r)
+        %+/-radius in all directions
         for dr = -radius:radius
             for dc = -radius:radius
                 rr = obs_r(k) + dr;
                 cc = obs_c(k) + dc;
+                %Boundary check
                 if rr >= 1 && rr <= size(map, 1) && cc >= 1 && cc <= size(map, 2)
                     inflated(rr, cc) = inf;
                 end
