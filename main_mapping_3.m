@@ -205,11 +205,11 @@ function map = update_occupancy_grid(map, rx, ry, rtheta, ranges, res, off_x, of
         for j = 1:(length(X)-1)
             %Checking map bounds
             if X(j) > 0 && X(j) <= size(map, 2) && Y(j) > 0 && Y(j) <= size(map, 1)
-                map(Y(j), X(j)) = map(Y(j), X(j)) + l_free;
+                map(Y(j), X(j)) = map(Y(j), X(j)) + l_free; %Those celss more likely to be free
             end
         end
         if hinder_cell_x > 0 && hinder_cell_x <= size(map, 2) && hinder_cell_y > 0 && hinder_cell_y <= size(map, 1)
-            map(hinder_cell_y, hinder_cell_x) = map(hinder_cell_y, hinder_cell_x) + l_occ;
+            map(hinder_cell_y, hinder_cell_x) = map(hinder_cell_y, hinder_cell_x) + l_occ; %hinder cell more likely to be occupied
         end
     end
 end
