@@ -1,13 +1,15 @@
 clear; clc; close all;
+
 datasets = {'intel.gfs.log', 'fr-campus-20040714.carmen.gfs.log'};
+
 for d = 1:length(datasets)
     filename = datasets{d};
-    fprintf('\nStartar processering av: %s\n', filename);
+
     if contains(filename, 'intel')
-        % Intel Lab
-        resolution = 10;        % celler per meter, 10 = 10 cm/cell
-        map_width_m = 100;      % kartbredd i meter
-        map_height_m = 100;     % karthöjd i meter
+        %Intel Lab
+        resolution = 10;        %cells per meter
+        map_width_m = 100;      %map size in meters
+        map_height_m = 100;
         map_width = map_width_m * resolution;
         map_height = map_height_m * resolution;
         offset_x = map_width / 2;
@@ -17,10 +19,10 @@ for d = 1:length(datasets)
         mat_file = 'IntelMaze.mat';
         var_name = 'IntelMaze';
     else
-        % Freiburg Campus
-        resolution = 1;         % celler per meter
-        map_width_m = 400;      % kartbredd i meter
-        map_height_m = 400;     % karthöjd i meter
+        %Freiburg Campus
+        resolution = 1;         %cells per meter
+        map_width_m = 400;      %map size in meters
+        map_height_m = 400;
         map_width = map_width_m * resolution;
         map_height = map_height_m * resolution;
         offset_x_m = map_width_m / 2 - 100;
@@ -34,15 +36,18 @@ for d = 1:length(datasets)
     end
     map_log_odds = zeros(map_height, map_width);
     fid = fopen(filename, 'r');
+
     if fid == -1
-        warning('Kunde inte öppna filen: %s', filename);
+        warning('Could not open the file: %s', filename);
         continue;
     end
+
     figure('Name', fig_name);
     colormap(gray);
     count = 0;
     first_robot_cell = [];
     last_robot_cell = [];
+    
     while ~feof(fid)
         line = fgetl(fid);
         if startsWith(line, 'FLASER')
@@ -78,20 +83,11 @@ for d = 1:length(datasets)
     set(gca, 'YDir', 'reverse');
     title(['Färdig karta: ', filename]);
     
-    % Spara och exportera den färdiga, rensade och flippade planeringskartan
-    make_planning_maze( ...
-        map_log_odds, ...
-        first_robot_cell, ...
-        last_robot_cell, ...
-        mat_file, ...
-        var_name, ...
-        resolution, ...
-        offset_x, ...
-        offset_y);
-    fprintf('Sparade %s\n', mat_file);
+    %Export map
+    make_planning_maze(map_log_odds, first_robot_cell, last_robot_cell, mat_file, var_name, resolution, offset_x, offset_y);
 end
-fprintf('\nBåda kartorna har genererats och exporterats!\n');
 
+%Exports the map, (all inputs except map_log_odds are only used at the end)
 function make_planning_maze(map_log_odds, start_cell, goal_cell, out_file, var_name, resolution, offset_x, offset_y)
 
     free_threshold = 0.35; %bigger means more free
