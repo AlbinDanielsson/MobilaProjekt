@@ -137,12 +137,6 @@ function make_planning_maze(map_log_odds, start_cell, goal_cell, out_file, var_n
     start_cropped(1) = size(cropped_map, 1) - start_cropped(1) + 1;
     goal_cropped(1)  = size(cropped_map, 1) - goal_cropped(1) + 1;
     
-    % Säkerställ bounds efter flippen och justeringen
-    start_cropped(1) = min(max(start_cropped(1), 1), size(cropped_map, 1));
-    start_cropped(2) = min(max(start_cropped(2), 1), size(cropped_map, 2));
-    goal_cropped(1)  = min(max(goal_cropped(1), 1), size(cropped_map, 1));
-    goal_cropped(2)  = min(max(goal_cropped(2), 1), size(cropped_map, 2));
-    
     % 5. Kör hinder-expansion på den färdigrätta och croppade kartan
     cropped_map = inflate_obstacles(cropped_map, inflate_cells);
     
@@ -181,20 +175,25 @@ function inflated = inflate_obstacles(map, radius)
     end
 end
 
+%Grid, robot, lasers, resolution, offset, max range
 function map = update_occupancy_grid(map, rx, ry, rtheta, ranges, res, off_x, off_y, max_trust_range)
     l_occ = 0.8;   
     l_free = -0.4; 
     robot_cell_x = round(rx * res) + off_x;
     robot_cell_y = round(ry * res) + off_y;
+
+    %Loop from -pi/2 to pi/2
     num_angles = length(ranges);
-    
     angles = linspace(-pi/2, pi/2, num_angles); 
-    
     for i = 1:num_angles
+
+        %If no obstacle seen in the max range, go to the next angle
         r = ranges(i);
         if r > max_trust_range || r > 80 
             continue;
         end
+
+        %Get the cell of the
         global_angle = rtheta + angles(i);
         hinder_x = rx + r * cos(global_angle);
         hinder_y = ry + r * sin(global_angle);
