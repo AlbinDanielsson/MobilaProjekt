@@ -36,7 +36,7 @@ for d = 1:length(datasets)
         var_name = 'FreiburgMaze';
     end
 
-    map_log_odds = zeros(map_height, map_width); %Initialize map with zeroes
+    map_log_odds = zeros(map_height, map_width); %Initialize map with zeroes (in log odds 0 is equal to 50% chance)
     fid = fopen(filename, 'r');
 
     if fid == -1
