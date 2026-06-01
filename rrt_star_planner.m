@@ -137,33 +137,52 @@ function nodes = propagate_cost(nodes, parent_idx, cost_diff)
     end
 end
 
-% Lokalt hjälp-funktion för kollisionskontroll (Bresenham)
+%Bresenham, returning boolean if there is an obstacle one the line 
+%between two points or not
 function collision = check_collision(map, x1, y1, x2, y2)
     collision = false;
-    dx = abs(x2 - x1); dy = abs(y2 - y1);
-    sx = sign(x2 - x1); sy = sign(y2 - y1);
-    x = x1; y = y1;
+    dx = abs(x2 - x1); 
+    dy = abs(y2 - y1);
+
+    sx = sign(x2 - x1); 
+    sy = sign(y2 - y1);
+
+    x = x1; 
+    y = y1;
     
     if dx > dy
+        %Err is used for rounding
+        % = 0.5 dx since we round upwards
         err = dx / 2;
+
+        %Increment x by +/- 1 until we reach the second point
         while x ~= x2
+
+            %Return true if we spot an obstacle
             if map(x, y) == inf
-                collision = true; return;
+                collision = true; 
+                return;
             end
-            x = x + sx; err = err - dy;
+            x = x + sx; 
+
+            %Repeat same value of y until we round up to a new value
+            err = err - dy;
             if err < 0
-                y = y + sy; err = err + dx;
+                y = y + sy;
+                err = err + dx;  % 1.5 dx, 2.5dx..
             end
         end
-    else
+    else %same as other case but x,y flipped
         err = dy / 2;
         while y ~= y2
             if map(x, y) == inf
                 collision = true; return;
             end
-            y = y + sy; err = err - dx;
+            y = y + sy; 
+            err = err - dx;
             if err < 0
-                x = x + sx; err = err + dy;
+                x = x + sx; 
+                err = err + dy;
             end
         end
     end
