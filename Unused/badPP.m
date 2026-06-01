@@ -1,9 +1,9 @@
 clc; clear;
 
-load FreiburgMaze.mat
-Maze = FreiburgMaze;
-Maze.goal = [197; 115];
-Maze.start = [354; 242];
+%load FreiburgMaze.mat
+%Maze = FreiburgMaze;
+%Maze.goal = [197; 115];
+%Maze.start = [354; 242];
 tic
 load IntelMaze.mat
 Maze = IntelMaze;
