@@ -126,7 +126,7 @@ function [path, pushes, pops, exec_time] = rrt_star_planner(map, startPos, goalP
     exec_time = toc;
 end
 
-%recursively updates costs
+%recursively updates costs of a parent and all its children
 function nodes = propagate_cost(nodes, parent_idx, cost_diff)
     %Find all of the nodes children
     child_indices = find(nodes(:, 4) == parent_idx);
