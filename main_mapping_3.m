@@ -213,7 +213,7 @@ function map = update_occupancy_grid(map, rx, ry, rtheta, ranges, res, off_x, of
     end
 end
 
-%Returns matrix with all indicies hit by a line going between two points
+%Returns two vectors with all indicies hit by a line going between two points
 function [x, y] = bresenham(x1, y1, x2, y2)
     dx = abs(x2 - x1); 
     dy = abs(y2 - y1);
