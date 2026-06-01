@@ -5,6 +5,7 @@ datasets = {'intel.gfs.log', 'fr-campus-20040714.carmen.gfs.log'};
 for d = 1:length(datasets)
     filename = datasets{d};
 
+    %Start loop with setting parameters depending on the map
     if contains(filename, 'intel')
         %Intel Lab
         resolution = 10;        %cells per meter
@@ -34,6 +35,7 @@ for d = 1:length(datasets)
         mat_file = 'FreiburgMaze.mat';
         var_name = 'FreiburgMaze';
     end
+
     map_log_odds = zeros(map_height, map_width);
     fid = fopen(filename, 'r');
 
@@ -47,36 +49,51 @@ for d = 1:length(datasets)
     count = 0;
     first_robot_cell = [];
     last_robot_cell = [];
+
     
-    while ~feof(fid)
-        line = fgetl(fid);
+    while ~feof(fid) %not end of file
+        line = fgetl(fid); %read next line
+
+        %Only reading the FLASER lines as they have the sensoer values
         if startsWith(line, 'FLASER')
             data = strsplit(line);
-            num_readings = str2double(data{2});
-            laser_ranges = str2double(data(3 : 2 + num_readings));
+
+            %Laser ranges
+            num_readings = str2double(data{2}); %It says 180 or 360 after FLASER
+            laser_ranges = str2double(data(3 : 2 + num_readings)); %Then that may sensor readings
+
+            %Followed by odometry data: x, y theta
             robot_x = str2double(data{3 + num_readings});
             robot_y = str2double(data{4 + num_readings});
             robot_theta = str2double(data{5 + num_readings});
+
+            %That gets the position
             robot_cell_x = round(robot_x * resolution) + offset_x;
             robot_cell_y = round(robot_y * resolution) + offset_y;
             
+            %Only update first_robot_cell once
             if isempty(first_robot_cell)
-                first_robot_cell = [robot_cell_y; robot_cell_x]; % [row; col]
+                first_robot_cell = [robot_cell_y; robot_cell_x];
             end
+
             last_robot_cell = [robot_cell_y; robot_cell_x];
+            
+            %Update the map probabilities with the laser ranges
             map_log_odds = update_occupancy_grid( ...
                 map_log_odds, robot_x, robot_y, robot_theta, laser_ranges, ...
                 resolution, offset_x, offset_y, max_trust_range);
+
             count = count + 1;
             if mod(count, 100) == 0
                 imagesc(flipud(1 - 1./(1 + exp(map_log_odds))));
                 axis equal;
                 set(gca, 'YDir', 'reverse');
-                title(sprintf('Genererar %s... Tidssteg: %d', filename, count));
+                title(sprintf('Generating %s... Timesteps: %d', filename, count));
                 drawnow;
             end
         end
     end
+
     fclose(fid);
     imagesc(flipud(1 - 1./(1 + exp(map_log_odds))));
     axis equal;
