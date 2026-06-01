@@ -3,7 +3,7 @@ function [path, pushes, pops, exec_time] = rrt_star_planner(map, startPos, goalP
     pushes = 0; pops = 0;
     [rows, cols] = size(map);
     
-    % Konfigurera parametrar för RRT* utifrån matrisstorlek
+    % Parameters
     max_iter = 20000;         % Max antal samplingar
     step_size = 5;          % Hur långt ett trädgren-steg får vara (i celler)
     search_radius = 40;      % Radie för RRT* Rewiring/Neighbor search
