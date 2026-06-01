@@ -13,7 +13,7 @@ for d = 1:length(datasets)
         offset_x = map_width / 2;
         offset_y = map_height / 2;
         fig_name = 'Occupancy Grid Map - Intel Lab';
-        max_trust_range = 20.5;
+        max_trust_range = 20;
         mat_file = 'IntelMaze.mat';
         var_name = 'IntelMaze';
     else
