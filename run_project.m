@@ -44,7 +44,7 @@ for map_number = 1:2
            
             % Caluclate euclidean distance of the path
             path_length = 0;
-                if ~isempty(path) && size(path, 1) > 1
+                if ~isempty(path)
                     for i = 1:(size(path, 1) - 1)
                         p1 = path(i, :);
                         p2 = path(i+1, :);

@@ -4,13 +4,13 @@ function [path, pushes, pops, exec_time] = rrt_star_planner(map, startPos, goalP
     [rows, cols] = size(map);
     
     % Parameters
-    max_iter = 20000;         % Max antal samplingar
-    step_size = 5;          % Hur långt ett trädgren-steg får vara (i celler)
-    search_radius = 40;      % Radie för RRT* Rewiring/Neighbor search
-    goal_threshold = 12;     % Hur nära målet vi måste komma för att godkännas
+    max_iter = 20000;         % Max random samples
+    step_size = 5;          % How long each step for each new random sample is
+    search_radius = 40;      % Rewiring/Neighbor search radius
+    goal_threshold = 12;
     
-    % Initiera trädet
-    % Varje rad i 'nodes': [X, Y, Cost, Parent_Index]
+   
+    % Initialize nodes [X, Y, Cost, Parent_Index]
     nodes = [startPos(1), startPos(2), 0, 0];
     pushes = pushes + 1;
     
@@ -23,37 +23,34 @@ function [path, pushes, pops, exec_time] = rrt_star_planner(map, startPos, goalP
             x_rand = goalPos(1);
             y_rand = goalPos(2);
         else
-            x_rand = randi([1, rows]);
+            x_rand = randi([1, rows]); % Create random sample
             y_rand = randi([1, cols]);
         end
         
-        % 2. Hitta närmaste noden i trädet
+        % Find closes node to new random sample
         dists_to_rand = sqrt((nodes(:,1) - x_rand).^2 + (nodes(:,2) - y_rand).^2);
         [~, nearest_idx] = min(dists_to_rand);
         x_near = nodes(nearest_idx, 1);
         y_near = nodes(nearest_idx, 2);
         
-        % 3. Ta ett kontrollerat steg mot den samplade punkten
+        % Take a step of step size twoards the direction of the new random node
         theta = atan2(y_rand - y_near, x_rand - x_near);
         x_new = round(x_near + step_size * cos(theta));
         y_new = round(y_near + step_size * sin(theta));
         
-        % Kontrollera kartans gränser
+        % check boundaries
         if x_new < 1 || x_new > rows || y_new < 1 || y_new > cols
             continue;
         end
         
-        % 4. Kollisionskontroll för den nya grenen
         if check_collision(map, x_near, y_near, x_new, y_new)
             continue; 
         end
         
-        % 5. STAR-OPTIMERING Del A: Choose Parent (Hitta bästa föräldern)
-        % Beräkna exakta avstånd från ALLA noder till det faktiska nya steget (x_new, y_new)
+        % Optimize and find best parent to new node
         dists_to_new = sqrt((nodes(:,1) - x_new).^2 + (nodes(:,2) - y_new).^2);
         neighbor_indices = find(dists_to_new <= search_radius);
         
-        % FIX 1: Utgå från det exakta avståndet till x_new, inte till x_rand!
         min_cost = nodes(nearest_idx, 3) + dists_to_new(nearest_idx); 
         best_parent = nearest_idx;
         
@@ -74,7 +71,7 @@ function [path, pushes, pops, exec_time] = rrt_star_planner(map, startPos, goalP
         pushes = pushes + 1;
         new_node_idx = size(nodes, 1);
         
-        % 6. STAR-OPTIMERING Del B: Rewire (Koppla om existerande noder)
+        % Optimize, Rewire
         for i = 1:length(neighbor_indices)
             n_idx = neighbor_indices(i);
             new_cost_for_neighbor = min_cost + dists_to_new(n_idx);
@@ -88,13 +85,13 @@ function [path, pushes, pops, exec_time] = rrt_star_planner(map, startPos, goalP
                     nodes(n_idx, 4) = new_node_idx; % Byt förälder
                     pops = pops + 1;
                     
-                    % FIX 2: Propagera kostnadsminskningen ner till grannens alla barn!
+                    % Propagate cost to kids
                     nodes = propagate_cost(nodes, n_idx, cost_difference);
                 end
             end
         end
         
-        % 7. Kolla om vi har nått målet
+        % check if we reached goal
         dist_to_goal = sqrt((x_new - goalPos(1))^2 + (y_new - goalPos(2))^2);
         if dist_to_goal <= goal_threshold
             if ~check_collision(map, x_new, y_new, goalPos(1), goalPos(2))
@@ -108,7 +105,7 @@ function [path, pushes, pops, exec_time] = rrt_star_planner(map, startPos, goalP
         end
     end
     
-    % 8. Backtracka trädet för att generera den slutgiltiga snygga pathen
+    % Generate path through backtracking
     path = [];
     if found_goal
         path = [goalPos(1), goalPos(2)];
@@ -120,7 +117,7 @@ function [path, pushes, pops, exec_time] = rrt_star_planner(map, startPos, goalP
             pops = pops + 1;
         end
     else
-        warning('RRT* lyckades inte hitta målet inom max_iter.');
+        fprintf('RRT* failed to reach goal');
     end
     
     exec_time = toc;
