@@ -4,7 +4,7 @@ close all;
 % algorithm names
 algos = {'Astar', 'RRTstar'};
 
-fprintf('%s | %s | %s | %s | %s | %s | %s\n', 'MAP', 'CASE', 'ALGO', 'PUSHES', 'POPS','PATH LENGTH', 'TIME(s)');
+fprintf('%s | %s | %s | %s | %s | %s\n', 'MAP', 'CASE', 'ALGO', 'PUSHES', 'POPS','PATH LENGTH', 'TIME(s)');
 
 % Loop over each maze
 for map_number = 1:2
@@ -54,7 +54,7 @@ for map_number = 1:2
                 end
             
             % Output
-            fprintf('%s | %s | %s | %d | %d | %f | %f\n', name, case_lbl, algo, psh, pp,path_length, t);
+            fprintf('%s | %s | %s | %d | %d | %f\n', name, case_lbl, algo, psh, pp,path_length, t);
             
             
             % Plotting
