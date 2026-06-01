@@ -126,14 +126,14 @@ function [path, pushes, pops, exec_time] = rrt_star_planner(map, startPos, goalP
     exec_time = toc;
 end
 
-% Rekursiv hjälpfunktion för att uppdatera kostnader nedåt i trädets grenar
+%recursively updates costs
 function nodes = propagate_cost(nodes, parent_idx, cost_diff)
-    % Hitta alla noder som har den omkopplade noden som förälder
+    %Find all of the nodes children
     child_indices = find(nodes(:, 4) == parent_idx);
     for i = 1:length(child_indices)
         c_idx = child_indices(i);
-        nodes(c_idx, 3) = nodes(c_idx, 3) - cost_diff; % Sänk kostnaden
-        nodes = propagate_cost(nodes, c_idx, cost_diff); % Gå djupare
+        nodes(c_idx, 3) = nodes(c_idx, 3) - cost_diff; %Lower cost
+        nodes = propagate_cost(nodes, c_idx, cost_diff); %Go deeper
     end
 end
 
