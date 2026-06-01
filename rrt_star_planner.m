@@ -144,8 +144,10 @@ function collision = check_collision(map, x1, y1, x2, y2)
     y = y1;
     
     if dx > dy
-        %Err is used for rounding
-        % = 0.5 dx since we round upwards
+        %y(x) >= 0.5 + n, is when y is rounded to n + 1
+        %x dy/dx >= 0.5 + n
+        %x dy >= (0.5 + n)dx
+        %0 >= (0.5 + n)dx - x dy
         err = dx / 2;
 
         %Increment x by +/- 1 until we reach the second point

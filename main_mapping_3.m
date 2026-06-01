@@ -208,6 +208,7 @@ end
 
 %Returns two vectors with all indicies hit by a line going between two points
 function [x, y] = bresenham(x1, y1, x2, y2)
+
     dx = abs(x2 - x1); 
     dy = abs(y2 - y1);
 
@@ -218,8 +219,11 @@ function [x, y] = bresenham(x1, y1, x2, y2)
     y = y1;
 
     if dx > dy
-        %Err is used for rounding
-        % = 0.5 dx since we round upwards
+        %y(x) >= 0.5 + n, is when y is rounded to n + 1
+        %x dy/dx >= 0.5 + n
+        %x dy >= (0.5 + n)dx
+        %0 >= (0.5 + n)dx - x dy
+
         err = dx / 2;
 
         %Increment x by +/- 1 until we reach the second point
