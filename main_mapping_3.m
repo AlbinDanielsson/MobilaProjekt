@@ -193,18 +193,17 @@ function map = update_occupancy_grid(map, rx, ry, rtheta, ranges, res, off_x, of
             continue;
         end
 
-        %Get the cell of the
+        %Get the cell of the seen obstacle
         global_angle = rtheta + angles(i);
         hinder_x = rx + r * cos(global_angle);
         hinder_y = ry + r * sin(global_angle);
         hinder_cell_x = round(hinder_x * res) + off_x;
         hinder_cell_y = round(hinder_y * res) + off_y;
         
+        %All cells on the way to the obstacle should be empty
         [X, Y] = bresenham(robot_cell_x, robot_cell_y, hinder_cell_x, hinder_cell_y);
         for j = 1:(length(X)-1)
-            if X(j) > 0 && X(j) <= size(map, 2) && Y(j) > 0 && Y(j) <= size(map, 1)
-                map(Y(j), X(j)) = map(Y(j), X(j)) + l_free;
-            end
+            map(Y(j), X(j)) = map(Y(j), X(j)) + l_free;
         end
         if hinder_cell_x > 0 && hinder_cell_x <= size(map, 2) && hinder_cell_y > 0 && hinder_cell_y <= size(map, 1)
             map(hinder_cell_y, hinder_cell_x) = map(hinder_cell_y, hinder_cell_x) + l_occ;
