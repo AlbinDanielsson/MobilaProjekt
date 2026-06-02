@@ -1,4 +1,4 @@
-function [path, pushes, pops, exec_time] = rrt_star_planner(map, startPos, goalPos)
+function [path, pushes, pops, exec_time, tree] = rrt_star_planner(map, startPos, goalPos)
     tic;
     pushes = 0; pops = 0;
     [rows, cols] = size(map);
@@ -116,6 +116,7 @@ function [path, pushes, pops, exec_time] = rrt_star_planner(map, startPos, goalP
         fprintf('RRT* failed to reach goal');
     end
     
+    tree = nodes;
     exec_time = toc;
 end
 

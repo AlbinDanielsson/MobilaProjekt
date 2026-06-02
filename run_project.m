@@ -31,7 +31,7 @@ for map_number = 1:2
             if strcmp(algo, 'DStarLite')
                 [path, psh, pp, t] = dstar_lite_planner(map, s_pos, g_pos, (case_type == 1));
             elseif strcmp(algo, 'RRTstar')
-                [path, psh, pp, t] = rrt_star_planner(map, s_pos, g_pos);
+                [path, psh, pp, t, tree] = rrt_star_planner(map, s_pos, g_pos);
             else
                 if case_type == 1
                     % Planner for A* or dijkstra for known
@@ -65,6 +65,21 @@ for map_number = 1:2
             colormap(gray); 
             hold all;
             
+            
+            %In case of RTT* plot the whole tree
+            if strcmp(algo, 'RRTstar') && ~isempty(tree)
+                for i = 2:size(tree, 1)
+                    parent_idx = tree(i, 4);
+                    if parent_idx > 0
+                        plot([tree(i,2), tree(parent_idx,2)], ...
+                        [tree(i,1), tree(parent_idx,1)], ...
+                        'Color', [0.2 0.6 1 0.25], ...
+                        'LineWidth', 0.5);
+                    end
+                end
+            end
+
+            %Plot path
             if ~isempty(path)
                 plot(path(:,2), path(:,1), 'g-', 'LineWidth', 2.5); 
             end
